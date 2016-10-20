@@ -3,7 +3,7 @@
 # Provider:: file
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
-# 
+#
 # Copyright 2013, Riot Games
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,12 +62,15 @@ action :create do
         begin
           if ::File.exists?(new_resource.path)
             if Digest::SHA1.file(new_resource.path).hexdigest != nexus_connection.get_artifact_sha(file_location)
+              Chef::Log.warn "Downloading new artifact as digest has changed"
               nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
             end
           else
+            Chef::Log.warn "Downloading new artifact file was not downloaded yet"
             nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
           end
           if nexus_connection.get_artifact_filename(file_location) != ::File.basename(new_resource.path)
+              Chef::Log.warn "Renaming artifact -> #{::File.dirname(new_resource.path)}, #{nexus_connection.get_artifact_filename(file_location)}, #{new_resource.path}"
             ::File.rename(::File.join(::File.dirname(new_resource.path), nexus_connection.get_artifact_filename(file_location)), new_resource.path)
           end
           run_proc :after_download
@@ -147,7 +150,7 @@ private
     execute_run_proc("artifact_file", new_resource, name)
   end
 
-  # Scrubs the file_location and returns the path to 
+  # Scrubs the file_location and returns the path to
   # the resource's checksum file.
   #
   # @return [String]
@@ -175,10 +178,10 @@ private
   #
   # @return [Boolean]
   def cached_checksum_exists?
-    ::File.exists?(cached_checksum)
+    false
   end
 
-  # Writes a file to file_cache_path. This file contains a SHA256 digest of the 
+  # Writes a file to file_cache_path. This file contains a SHA256 digest of the
   # artifact file. Returns the result of the file.puts command, which will be nil.
   #
   # @return [NilClass]
